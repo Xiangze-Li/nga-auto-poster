@@ -1,0 +1,73 @@
+# This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  PROJECT_NAME: "nga-auto-poster"
+  COMMIT_ID: "${{ github.sha }}"
+  PROJECT_VERSION: ""
+
+jobs:
+  build:
+    name: Build Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # target: linux/amd64, linux/arm64, windows/386, windows/amd64, darwin/amd64, darwin/arm64
+        goos: [linux, windows, darwin]
+        goarch: ['386', amd64, arm64]
+        exclude:
+          - goos: linux
+            goarch: '386'
+          - goos: windows
+            goarch: arm64
+          - goos: darwin
+            goarch: '386'
+      fail-fast: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Install cross-compiler for windows
+        if: matrix.goos == 'windows'
+        run: sudo apt-get -y install mingw-w64
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20'
+      - name: Set env
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          echo "PROJECT_VERSION=develop-${COMMIT_ID::7}" >> $GITHUB_ENV;
+          if [ $GOOS = 'windows' ]; then
+            echo "BINARY_NAME="$PROJECT_NAME".exe" >> $GITHUB_ENV;
+          else
+            echo "BINARY_NAME="$PROJECT_NAME"" >> $GITHUB_ENV;
+          fi
+          if [ $GOOS = 'windows' ] && [ $GOARCH = '386' ]; then
+            echo "CC=i686-w64-mingw32-gcc" >> $GITHUB_ENV;
+          elif [ $GOOS = 'windows' ] && [ $GOARCH = 'amd64' ]; then
+            echo "CC=x86_64-w64-mingw32-gcc" >> $GITHUB_ENV;
+          fi
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: ${{ matrix.goos == 'windows' && 1 || 0 }}
+          CGO_FLAGS: -Werror=unused-variable -Werror=implicit-function-declaration -O2
+        run: |
+          go build -o "build/$BINARY_NAME" -trimpath -ldflags "-s -w" .
+          cp config.yaml content.txt build/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROJECT_NAME }}_${{ env.PROJECT_VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: build/
