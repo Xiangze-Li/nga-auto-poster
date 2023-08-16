@@ -1,0 +1,16 @@
+这是一条帖子的内容
+
+可以换行
+可以插入nga支持的各种格式代码
+[i]斜体[/i] [b]粗体[/b] [u]下划线[/u]
+[align=right]
+右对齐文字
+[/align]
+扔骰子 [dice]5D100[/dice]
+[color=red]颜色[/color]
+插入网图或之前上传的附件图
+[img]./mon_202308/15/lsQ2s-b22rZnT3cSmt-mt.jpg[/img]
+
+用下面这一行分割两个帖子的内容(可以在config.yaml里修改)
+### SPLIT ###
+这是第二个帖子的内容
